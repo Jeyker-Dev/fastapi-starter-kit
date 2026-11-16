@@ -1,0 +1,58 @@
+[project]
+name = "app"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Jeyker-Dev", email = "mendozajeyker1178@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.20.1",
+    "asyncpg>=0.32.0",
+    "fastapi>=0.163.1",
+    "pydantic-settings>=2.16.3",
+    "sqlalchemy[asyncio]>=2.1.8",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.8,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.1",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.5.0",
+    "ruff>=0.17.5",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+  "E", "F", "I", "N", "UP", "B", "SIM",
+  "C90",      # cyclomatic complexity
+  "FBT",      # boolean trap: no flag parameters
+  "PLR2004",  # magic value comparison
+  "RET505",   # no else after return
+  "PLR0913",  # too many arguments
+  "PLR0915",  # too many statements
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLR2004", "FBT"]
+
+[tool.mypy]
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["*_test.py"]
+asyncio_mode = "auto"
