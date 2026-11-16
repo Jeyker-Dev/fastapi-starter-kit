@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from app.config import Settings, get_settings
 from app.db import create_engine, create_session_factory
+from app.health.api import router as health_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -25,7 +26,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         finally:
             await engine.dispose()
 
-    return FastAPI(title="FastAPI Starter Kit", lifespan=lifespan)
+    application = FastAPI(title="FastAPI Starter Kit", lifespan=lifespan)
+    application.include_router(health_router)
+    return application
 
 
 app = create_app()
