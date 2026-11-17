@@ -4,7 +4,6 @@
 
 Fase 1 — Usuarios y autenticación.
 
-- [ ] [AUTH] Detección de reúso — reenviar a `/auth/refresh` un token ya rotado devuelve 401 y deja revocados todos los tokens de esa familia, incluido el más nuevo; los de otras familias del mismo usuario siguen funcionando — depends on: Refresh con rotación
 - [ ] [AUTH] Logout — `POST /auth/logout` devuelve 204 y después ningún token de esa familia sirve para refresh; con un token inexistente también devuelve 204 — depends on: Refresh con rotación
 
 ## Hechas en este sprint
@@ -15,6 +14,7 @@ Fase 1 — Usuarios y autenticación.
 - [x] [AUTH] Login — `POST /auth/token` con credenciales correctas devuelve 200 con `access_token`, `refresh_token`, `token_type` y `expires_in`; con email inexistente, contraseña incorrecta o usuario inactivo devuelve el mismo 401 — depends on: Script de alta de usuarios
 - [x] [AUTH] Usuario actual — `GET /users/me` con un access token válido devuelve el usuario sin `password_hash`; con token vencido, de mala firma, de tipo distinto de `access` o de un usuario inactivo devuelve 401 — depends on: Login
 - [x] [AUTH] Refresh con rotación — `POST /auth/refresh` con un token válido devuelve un par nuevo y el token usado ya no sirve; con un token vencido o inexistente devuelve 401 — depends on: Login
+- [x] [AUTH] Detección de reúso — reenviar a `/auth/refresh` un token ya rotado devuelve 401 y deja revocados todos los tokens de esa familia, incluido el más nuevo; los de otras familias del mismo usuario siguen funcionando — depends on: Refresh con rotación
 
 - [x] [INFRA] Proyecto con uv y herramientas de calidad — `uv run ruff check .`, `uv run mypy` y `uv run pytest` terminan en 0 con un test mínimo; `pyproject.toml` tiene la configuración de `python-conventions` y Python 3.13 fijado — depends on: -
 - [x] [INFRA] Configuración con pydantic-settings — la API no arranca y muestra qué variable falta si `DATABASE_URL` o `JWT_SECRET` no están, o si `JWT_SECRET` tiene menos de 32 caracteres; `.env.example` lista todas las variables — depends on: Proyecto con uv

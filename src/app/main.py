@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from app.auth.api import router as auth_router
-from app.auth.errors import InvalidCredentials, InvalidRefreshToken
+from app.auth.errors import InvalidCredentials, InvalidRefreshToken, RefreshTokenReused
 from app.auth.passwords import PasswordHasher
 from app.clock import Clock, SystemClock
 from app.config import Settings, get_settings
@@ -55,6 +55,7 @@ def create_app(
     application = FastAPI(title="FastAPI Starter Kit", lifespan=lifespan)
     application.add_exception_handler(InvalidCredentials, _handle_invalid_credentials)
     application.add_exception_handler(InvalidRefreshToken, _handle_invalid_refresh_token)
+    application.add_exception_handler(RefreshTokenReused, _handle_invalid_refresh_token)
     application.include_router(health_router)
     application.include_router(auth_router)
     application.include_router(users_router)

@@ -74,3 +74,16 @@ class SqlAlchemyRefreshTokenRepository:
         self._session.add(_to_model(replacement))
         await self._session.commit()
         return True
+
+    async def revoke_family(self, family_id: UUID, revoked_at: datetime) -> None:
+        """Revoke all active tokens belonging to a refresh token family."""
+        stmt = (
+            update(RefreshTokenModel)
+            .where(
+                RefreshTokenModel.family_id == family_id,
+                RefreshTokenModel.revoked_at.is_(None),
+            )
+            .values(revoked_at=revoked_at)
+        )
+        await self._session.execute(stmt)
+        await self._session.commit()

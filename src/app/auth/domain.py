@@ -41,6 +41,8 @@ class RefreshTokenRepository(Protocol):
         replacement: RefreshToken,
     ) -> bool: ...
 
+    async def revoke_family(self, family_id: UUID, revoked_at: datetime) -> None: ...
+
 
 class PasswordVerifier(Protocol):
     """Port for verifying passwords against stored hashes."""

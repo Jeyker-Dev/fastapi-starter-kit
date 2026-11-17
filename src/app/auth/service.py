@@ -1,4 +1,7 @@
-from uuid import uuid4
+import logging
+from datetime import datetime
+from typing import NoReturn
+from uuid import UUID, uuid4
 
 from app.auth.domain import (
     PasswordVerifier,
@@ -6,8 +9,10 @@ from app.auth.domain import (
     TokenIssuerPort,
     TokenPair,
 )
-from app.auth.errors import InvalidCredentials, InvalidRefreshToken
+from app.auth.errors import InvalidCredentials, InvalidRefreshToken, RefreshTokenReused
 from app.users.service import UserService
+
+logger = logging.getLogger(__name__)
 
 
 class AuthService:
@@ -51,11 +56,15 @@ class AuthService:
         )
 
     async def refresh(self, raw_refresh_token: str) -> TokenPair:
-        """Validate and atomically rotate a refresh token, issuing a new pair."""
+        """Validate and atomically rotate a refresh token, revoking its family on reuse."""
         token_hash = self._tokens.hash_refresh_token(raw_refresh_token)
         record = await self._refresh_tokens.get_by_hash(token_hash)
         now = self._tokens.now()
-        if record is None or record.revoked_at is not None or record.expires_at <= now:
+        if record is None:
+            raise InvalidRefreshToken("Invalid refresh token")
+        if record.revoked_at is not None:
+            await self._handle_reuse(record.family_id, now)
+        if record.expires_at <= now:
             raise InvalidRefreshToken("Invalid refresh token")
 
         user = await self._users.get_by_id(record.user_id)
@@ -72,7 +81,7 @@ class AuthService:
             replacement=replacement,
         )
         if not rotated:
-            raise InvalidRefreshToken("Invalid refresh token")
+            await self._handle_reuse(record.family_id, now)
 
         access_token = self._tokens.issue_access_token(user_id=user.id)
         return TokenPair(
@@ -80,3 +89,8 @@ class AuthService:
             refresh_token=new_raw,
             expires_in=self._tokens.access_token_ttl_seconds,
         )
+
+    async def _handle_reuse(self, family_id: UUID, now: datetime) -> NoReturn:
+        await self._refresh_tokens.revoke_family(family_id=family_id, revoked_at=now)
+        logger.warning("Refresh token reuse detected for family_id=%s", family_id)
+        raise RefreshTokenReused(family_id)
