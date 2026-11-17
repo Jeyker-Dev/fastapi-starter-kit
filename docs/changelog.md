@@ -2,6 +2,7 @@
 
 ## 2026-11-16
 
+- Hasher Argon2 con `pwdlib` en `src/app/auth/passwords.py`, script `scripts/create_user.py`, copia de `scripts/` en `Dockerfile` y tests en `tests/unit/app/auth/passwords_test.py` y `tests/integration/create_user_script_test.py`.
 - Base de errores `BusinessRuleError` (`src/app/errors.py`), `Clock`/`SystemClock` (`src/app/clock.py`), dominio, errores, servicio y repositorio de usuarios (`src/app/users/`) con tests unitarios en `tests/unit/app/`.
 - Modelos `UserModel` (`src/app/users/models.py`) y `RefreshTokenModel` (`src/app/auth/models.py`), migración inicial en `migrations/versions/2e215cbe92c7_create_users_and_refresh_tokens.py` y tests en `tests/integration/migrations_test.py`.
 - Movidas las tareas de Fase 1 desde `docs/tasks/backlog.md` a `docs/tasks/sprint-actual.md`.
