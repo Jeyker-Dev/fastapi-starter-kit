@@ -2,6 +2,7 @@
 
 ## 2026-11-17
 
+- Usuario actual en `GET /users/me` (`src/app/users/api.py`) y dependencia `get_current_user` en `src/app/auth/dependencies.py`; el vencimiento del access token se valida con el `Clock` inyectado. Tests en `tests/integration/users_me_test.py`.
 - Login en `POST /auth/token` (`src/app/auth/api.py`): access token JWT y refresh token opaco guardado como hash SHA-256, con 401 uniforme para credenciales inválidas. Tests en `tests/unit/app/auth/` y `tests/integration/auth_token_test.py`.
 
 ## 2026-11-16

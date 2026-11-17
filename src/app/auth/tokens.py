@@ -68,3 +68,32 @@ class TokenIssuer:
             created_at=now,
         )
         return raw_token, token
+
+    def decode_access_token(self, token: str) -> UUID | None:
+        """Verify an access JWT using the injected Clock and return its user ID."""
+        try:
+            payload = jwt.decode(
+                token,
+                self._secret,
+                algorithms=[JWT_ALGORITHM],
+                options={"verify_exp": False, "require": ["exp", "sub", "type"]},
+            )
+        except jwt.InvalidTokenError:
+            return None
+
+        if payload.get("type") != "access":
+            return None
+
+        exp = payload.get("exp")
+        if isinstance(exp, bool) or not isinstance(exp, int):
+            return None
+        if exp <= int(self._clock.now().timestamp()):
+            return None
+
+        sub = payload.get("sub")
+        if not isinstance(sub, str):
+            return None
+        try:
+            return UUID(sub)
+        except ValueError:
+            return None

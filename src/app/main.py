@@ -11,6 +11,7 @@ from app.clock import Clock, SystemClock
 from app.config import Settings, get_settings
 from app.db import create_engine, create_session_factory
 from app.health.api import router as health_router
+from app.users.api import router as users_router
 
 
 async def _handle_invalid_credentials(_request: Request, _exc: Exception) -> JSONResponse:
@@ -48,6 +49,7 @@ def create_app(
     application.add_exception_handler(InvalidCredentials, _handle_invalid_credentials)
     application.include_router(health_router)
     application.include_router(auth_router)
+    application.include_router(users_router)
     return application
 
 
