@@ -1,3 +1,7 @@
+from datetime import datetime
+from uuid import UUID
+
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.domain import RefreshToken
@@ -16,6 +20,18 @@ def _to_domain(model: RefreshTokenModel) -> RefreshToken:
     )
 
 
+def _to_model(token: RefreshToken) -> RefreshTokenModel:
+    return RefreshTokenModel(
+        id=token.id,
+        user_id=token.user_id,
+        family_id=token.family_id,
+        token_hash=token.token_hash,
+        expires_at=token.expires_at,
+        revoked_at=token.revoked_at,
+        created_at=token.created_at,
+    )
+
+
 class SqlAlchemyRefreshTokenRepository:
     """SQLAlchemy implementation of RefreshTokenRepository."""
 
@@ -23,15 +39,38 @@ class SqlAlchemyRefreshTokenRepository:
         self._session = session
 
     async def add(self, token: RefreshToken) -> RefreshToken:
-        model = RefreshTokenModel(
-            id=token.id,
-            user_id=token.user_id,
-            family_id=token.family_id,
-            token_hash=token.token_hash,
-            expires_at=token.expires_at,
-            revoked_at=token.revoked_at,
-            created_at=token.created_at,
-        )
+        model = _to_model(token)
         self._session.add(model)
         await self._session.commit()
         return _to_domain(model)
+
+    async def get_by_hash(self, token_hash: str) -> RefreshToken | None:
+        stmt = select(RefreshTokenModel).where(RefreshTokenModel.token_hash == token_hash)
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return _to_domain(model) if model is not None else None
+
+    async def rotate(
+        self,
+        token_id: UUID,
+        revoked_at: datetime,
+        replacement: RefreshToken,
+    ) -> bool:
+        """Atomically revoke an active refresh token and insert its replacement."""
+        stmt = (
+            update(RefreshTokenModel)
+            .where(
+                RefreshTokenModel.id == token_id,
+                RefreshTokenModel.revoked_at.is_(None),
+            )
+            .values(revoked_at=revoked_at)
+            .returning(RefreshTokenModel.id)
+        )
+        result = await self._session.execute(stmt)
+        if result.scalar_one_or_none() is None:
+            await self._session.rollback()
+            return False
+
+        self._session.add(_to_model(replacement))
+        await self._session.commit()
+        return True

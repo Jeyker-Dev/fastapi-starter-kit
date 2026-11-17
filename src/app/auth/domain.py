@@ -32,6 +32,15 @@ class RefreshTokenRepository(Protocol):
 
     async def add(self, token: RefreshToken) -> RefreshToken: ...
 
+    async def get_by_hash(self, token_hash: str) -> RefreshToken | None: ...
+
+    async def rotate(
+        self,
+        token_id: UUID,
+        revoked_at: datetime,
+        replacement: RefreshToken,
+    ) -> bool: ...
+
 
 class PasswordVerifier(Protocol):
     """Port for verifying passwords against stored hashes."""
@@ -46,6 +55,10 @@ class TokenIssuerPort(Protocol):
 
     @property
     def access_token_ttl_seconds(self) -> int: ...
+
+    def now(self) -> datetime: ...
+
+    def hash_refresh_token(self, raw_token: str) -> str: ...
 
     def issue_access_token(self, user_id: UUID) -> str: ...
 

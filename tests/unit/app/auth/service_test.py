@@ -1,10 +1,11 @@
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
 
 from app.auth.domain import RefreshToken
-from app.auth.errors import InvalidCredentials
+from app.auth.errors import InvalidCredentials, InvalidRefreshToken
 from app.auth.service import AuthService
 from app.auth.tokens import TokenIssuer, hash_refresh_token
 from app.errors import BusinessRuleError
@@ -59,6 +60,22 @@ class FakeRefreshTokenRepository:
     async def add(self, token: RefreshToken) -> RefreshToken:
         self.tokens.append(token)
         return token
+
+    async def get_by_hash(self, token_hash: str) -> RefreshToken | None:
+        return next((t for t in self.tokens if t.token_hash == token_hash), None)
+
+    async def rotate(
+        self,
+        token_id: UUID,
+        revoked_at: datetime,
+        replacement: RefreshToken,
+    ) -> bool:
+        for idx, token in enumerate(self.tokens):
+            if token.id == token_id and token.revoked_at is None:
+                self.tokens[idx] = replace(token, revoked_at=revoked_at)
+                self.tokens.append(replacement)
+                return True
+        return False
 
 
 def _make_auth_setup(
@@ -151,3 +168,74 @@ async def test_login_with_inactive_user_raises_invalid_credentials() -> None:
 
     with pytest.raises(InvalidCredentials):
         await auth_service.login("inactive@example.com", "correct-horse-12")
+
+
+async def test_refresh_rotates_token_preserving_family_and_extending_ttl() -> None:
+    now = datetime(2026, 11, 17, 12, 0, tzinfo=UTC)
+    clock = FakeClock(now)
+    hasher = FakePasswordHasher()
+    user_repo = FakeUserRepository()
+    token_repo = FakeRefreshTokenRepository()
+    user_service = UserService(users=user_repo, hasher=hasher, clock=clock)
+    token_issuer = TokenIssuer(
+        secret=TEST_SECRET,
+        access_token_ttl_minutes=15,
+        refresh_token_ttl_days=30,
+        clock=clock,
+    )
+    auth_service = AuthService(
+        users=user_service,
+        refresh_tokens=token_repo,
+        passwords=hasher,
+        tokens=token_issuer,
+    )
+    await user_service.create_user("alice@example.com", "correct-horse-12")
+    initial = await auth_service.login("alice@example.com", "correct-horse-12")
+
+    refresh_time = now + timedelta(days=5)
+    clock.current = refresh_time
+    rotated = await auth_service.refresh(initial.refresh_token)
+
+    assert rotated.refresh_token != initial.refresh_token
+    assert len(token_repo.tokens) == 2
+    old_record, new_record = token_repo.tokens
+    assert old_record.revoked_at == refresh_time
+    assert new_record.family_id == old_record.family_id
+    assert new_record.revoked_at is None
+    assert new_record.expires_at == refresh_time + timedelta(days=30)
+
+
+async def test_refresh_rejects_missing_expired_and_inactive_tokens() -> None:
+    now = datetime(2026, 11, 17, 12, 0, tzinfo=UTC)
+    clock = FakeClock(now)
+    hasher = FakePasswordHasher()
+    user_repo = FakeUserRepository()
+    token_repo = FakeRefreshTokenRepository()
+    user_service = UserService(users=user_repo, hasher=hasher, clock=clock)
+    token_issuer = TokenIssuer(
+        secret=TEST_SECRET,
+        access_token_ttl_minutes=15,
+        refresh_token_ttl_days=30,
+        clock=clock,
+    )
+    auth_service = AuthService(
+        users=user_service,
+        refresh_tokens=token_repo,
+        passwords=hasher,
+        tokens=token_issuer,
+    )
+    user = await user_service.create_user("alice@example.com", "correct-horse-12")
+    pair = await auth_service.login("alice@example.com", "correct-horse-12")
+
+    with pytest.raises(InvalidRefreshToken) as exc_info:
+        await auth_service.refresh("does-not-exist")
+    assert isinstance(exc_info.value, BusinessRuleError)
+
+    clock.current = now + timedelta(days=30)
+    with pytest.raises(InvalidRefreshToken):
+        await auth_service.refresh(pair.refresh_token)
+
+    clock.current = now + timedelta(minutes=1)
+    user_repo.by_id[user.id] = replace(user, is_active=False)
+    with pytest.raises(InvalidRefreshToken):
+        await auth_service.refresh(pair.refresh_token)

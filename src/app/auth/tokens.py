@@ -1,6 +1,6 @@
 import hashlib
 import secrets
-from datetime import timedelta
+from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 
 import jwt
@@ -41,6 +41,14 @@ class TokenIssuer:
     def access_token_ttl_seconds(self) -> int:
         """Return access token lifetime in seconds."""
         return self._access_token_ttl_minutes * SECONDS_PER_MINUTE
+
+    def now(self) -> datetime:
+        """Return the current UTC timestamp from the injected Clock."""
+        return self._clock.now()
+
+    def hash_refresh_token(self, raw_token: str) -> str:
+        """Hash an opaque refresh token using SHA-256."""
+        return hash_refresh_token(raw_token)
 
     def issue_access_token(self, user_id: UUID) -> str:
         """Sign an HS256 JWT access token for the given user ID."""
