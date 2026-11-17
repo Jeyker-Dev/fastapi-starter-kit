@@ -2,6 +2,7 @@
 
 ## 2026-11-17
 
+- Guía de uso en `README.md` (creación desde plantilla, Docker Compose, primer usuario, desarrollo local y creación de un dominio copiando `users/`) verificada desde cero en un clon limpio.
 - Logout en `POST /auth/logout` (`src/app/auth/api.py`): revoca la familia del refresh token y responde siempre 204. Tests en `tests/integration/auth_logout_test.py`.
 - Detección de reúso en `POST /auth/refresh`: un token ya revocado revoca toda su familia, responde 401 y registra un `warning` con el `family_id`. `migrations/env.py` ya no apaga los loggers de la app. Tests en `tests/integration/auth_refresh_reuse_test.py`.
 - Refresh con rotación en `POST /auth/refresh` (`src/app/auth/api.py`): revoca el token usado y emite otro de la misma familia en una sola transacción, con 401 `Invalid refresh token`. Tests en `tests/integration/auth_refresh_test.py`.

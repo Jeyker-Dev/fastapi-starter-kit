@@ -2,7 +2,6 @@
 
 ## Fase 2 — Lista para usar como plantilla
 
-- [ ] [DOCS] Guía para crear una API nueva — `README.md` explica cómo crear un repo con "Use this template", configurar `.env`, levantar compose, crear el primer usuario y agregar un dominio nuevo copiando la forma de `users/`; siguiendo la guía desde cero se llega a un login exitoso — depends on: Logout
 - [ ] [INFRA] Marcar el repositorio como template en GitHub — el botón "Use this template" aparece en el repo — depends on: Guía para crear una API nueva
 
 ## Más adelante

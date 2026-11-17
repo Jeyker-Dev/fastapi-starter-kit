@@ -2,10 +2,11 @@
 
 ## En curso
 
-Fase 1 — Usuarios y autenticación.
-
+Fase 2 — Lista para usar como plantilla.
 
 ## Hechas en este sprint
+
+- [x] [DOCS] Guía para crear una API nueva — `README.md` explica cómo crear un repo con "Use this template", configurar `.env`, levantar compose, crear el primer usuario y agregar un dominio nuevo copiando la forma de `users/`; siguiendo la guía desde cero se llega a un login exitoso — depends on: Logout
 
 - [x] [DB] Migración inicial de `users` y `refresh_tokens` — `alembic upgrade head` crea ambas tablas con las columnas, índices y restricciones de `docs/areas/database.md`; `alembic downgrade base` las borra — depends on: Endpoint de salud
 - [x] [AUTH] Dominio y servicio de usuarios — crear un usuario normaliza el email, rechaza contraseñas de menos de 12 caracteres con `PasswordTooShort` y emails repetidos con `EmailAlreadyRegistered` (tests unitarios con repositorio falso) — depends on: Migración inicial
