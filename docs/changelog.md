@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-17
+
+- Login en `POST /auth/token` (`src/app/auth/api.py`): access token JWT y refresh token opaco guardado como hash SHA-256, con 401 uniforme para credenciales inválidas. Tests en `tests/unit/app/auth/` y `tests/integration/auth_token_test.py`.
+
 ## 2026-11-16
 
 - Hasher Argon2 con `pwdlib` en `src/app/auth/passwords.py`, script `scripts/create_user.py`, copia de `scripts/` en `Dockerfile` y tests en `tests/unit/app/auth/passwords_test.py` y `tests/integration/create_user_script_test.py`.
