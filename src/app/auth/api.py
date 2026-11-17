@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.auth.dependencies import get_auth_service
@@ -41,3 +41,12 @@ async def refresh(
     """Rotate a valid refresh token and issue a new token pair."""
     pair = await auth_service.refresh(body.refresh_token)
     return _to_token_response(pair)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(
+    body: RefreshRequest,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+) -> None:
+    """Revoke the refresh token session family idempotently."""
+    await auth_service.logout(body.refresh_token)

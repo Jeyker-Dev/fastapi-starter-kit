@@ -90,6 +90,17 @@ class AuthService:
             expires_in=self._tokens.access_token_ttl_seconds,
         )
 
+    async def logout(self, raw_refresh_token: str) -> None:
+        """Revoke all active tokens in the refresh token's family, if it exists."""
+        token_hash = self._tokens.hash_refresh_token(raw_refresh_token)
+        record = await self._refresh_tokens.get_by_hash(token_hash)
+        if record is None:
+            return
+        await self._refresh_tokens.revoke_family(
+            family_id=record.family_id,
+            revoked_at=self._tokens.now(),
+        )
+
     async def _handle_reuse(self, family_id: UUID, now: datetime) -> NoReturn:
         await self._refresh_tokens.revoke_family(family_id=family_id, revoked_at=now)
         logger.warning("Refresh token reuse detected for family_id=%s", family_id)

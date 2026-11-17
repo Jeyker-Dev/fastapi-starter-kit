@@ -343,3 +343,43 @@ async def test_refresh_losing_concurrent_rotation_race_triggers_reuse_revocation
 
     assert exc_info.value.family_id == family_id
     assert token_repo.revoked_families == [(family_id, race_time)]
+
+
+async def test_logout_revokes_family_and_ignores_missing_and_revoked_without_warning(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    now = datetime(2026, 11, 17, 12, 0, tzinfo=UTC)
+    clock = FakeClock(now)
+    hasher = FakePasswordHasher()
+    user_repo = FakeUserRepository()
+    token_repo = FakeRefreshTokenRepository()
+    user_service = UserService(users=user_repo, hasher=hasher, clock=clock)
+    token_issuer = TokenIssuer(
+        secret=TEST_SECRET,
+        access_token_ttl_minutes=15,
+        refresh_token_ttl_days=30,
+        clock=clock,
+    )
+    auth_service = AuthService(
+        users=user_service,
+        refresh_tokens=token_repo,
+        passwords=hasher,
+        tokens=token_issuer,
+    )
+    await user_service.create_user("alice@example.com", "correct-horse-12")
+    pair = await auth_service.login("alice@example.com", "correct-horse-12")
+    family_id = token_repo.tokens[0].family_id
+
+    logout_time = now + timedelta(minutes=5)
+    clock.current = logout_time
+    with caplog.at_level(logging.WARNING, logger="app"):
+        await auth_service.logout(pair.refresh_token)
+        await auth_service.logout(pair.refresh_token)
+        await auth_service.logout("does-not-exist")
+
+    assert token_repo.revoked_families == [
+        (family_id, logout_time),
+        (family_id, logout_time),
+    ]
+    assert token_repo.tokens[0].revoked_at == logout_time
+    assert [r for r in caplog.records if r.levelno >= logging.WARNING] == []
